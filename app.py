@@ -4,15 +4,15 @@ import json
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# 🎨 RTL
+# 🎨 RTL FIX אמיתי
 st.markdown("""
 <style>
-body {
-    direction: RTL;
+html, body, [class*="css"]  {
+    direction: rtl;
     text-align: right;
 }
 .card {
-    background-color: #f7f7f7;
+    background-color: #1e1e1e;
     padding: 15px;
     border-radius: 15px;
     margin-bottom: 20px;
@@ -22,60 +22,49 @@ body {
 
 st.title("🥾 מתכנן טיולים בישראל")
 
-# 📚 30+ מסלולים
+# 📚 דאטה אמיתי עם אזורים
 KNOWN_HIKES = [
-    {"name": "נחל כזיב", "area": "צפון", "type": "נחל"},
-    {"name": "הר מירון", "area": "צפון", "type": "הר"},
-    {"name": "נחל עמוד", "area": "צפון", "type": "נחל"},
-    {"name": "בניאס", "area": "צפון", "type": "מים"},
-    {"name": "הר תבור", "area": "צפון", "type": "הר"},
-    {"name": "נחל שניר", "area": "צפון", "type": "מים"},
-    {"name": "מצוקי דרגות", "area": "דרום", "type": "מדבר"},
-    {"name": "מצדה", "area": "דרום", "type": "עתיקות"},
-    {"name": "עין גדי", "area": "דרום", "type": "מים"},
-    {"name": "נחל דוד", "area": "דרום", "type": "מים"},
-    {"name": "נחל ערוגות", "area": "דרום", "type": "מים"},
-    {"name": "הר סדום", "area": "דרום", "type": "מדבר"},
-    {"name": "נחל השופט", "area": "מרכז", "type": "נחל"},
-    {"name": "פארק קנדה", "area": "מרכז", "type": "יער"},
-    {"name": "יער בן שמן", "area": "מרכז", "type": "יער"},
-    {"name": "נחל אלכסנדר", "area": "מרכז", "type": "נחל"},
-    {"name": "חוף דור הבונים", "area": "צפון", "type": "ים"},
-    {"name": "חוף אכזיב", "area": "צפון", "type": "ים"},
-    {"name": "חוף פלמחים", "area": "מרכז", "type": "ים"},
-    {"name": "קיסריה", "area": "מרכז", "type": "עתיקות"},
-    {"name": "גן לאומי אפולוניה", "area": "מרכז", "type": "עתיקות"},
-    {"name": "שמורת החולה", "area": "צפון", "type": "טבע"},
-    {"name": "עין אפק", "area": "צפון", "type": "מים"},
-    {"name": "הר בנטל", "area": "צפון", "type": "תצפית"},
-    {"name": "הר הארבל", "area": "צפון", "type": "תצפית"},
-    {"name": "נחל פרת", "area": "מרכז", "type": "מדבר"},
-    {"name": "מכתש רמון", "area": "דרום", "type": "מדבר"},
-    {"name": "עין עבדת", "area": "דרום", "type": "מים"},
-    {"name": "תל עזקה", "area": "מרכז", "type": "תצפית"},
-    {"name": "הר הכרמל", "area": "צפון", "type": "יער"},
+    {"name": "נחל כזיב", "area": "צפון"},
+    {"name": "הר מירון", "area": "צפון"},
+    {"name": "נחל עמוד", "area": "צפון"},
+    {"name": "בניאס", "area": "צפון"},
+    {"name": "הר תבור", "area": "צפון"},
+    {"name": "שמורת החולה", "area": "צפון"},
+    {"name": "הר הארבל", "area": "צפון"},
+
+    {"name": "נחל השופט", "area": "מרכז"},
+    {"name": "פארק קנדה", "area": "מרכז"},
+    {"name": "יער בן שמן", "area": "מרכז"},
+    {"name": "נחל אלכסנדר", "area": "מרכז"},
+    {"name": "קיסריה", "area": "מרכז"},
+    {"name": "אפולוניה", "area": "מרכז"},
+    {"name": "חוף פלמחים", "area": "מרכז"},
+
+    {"name": "מצדה", "area": "דרום"},
+    {"name": "עין גדי", "area": "דרום"},
+    {"name": "נחל דוד", "area": "דרום"},
+    {"name": "נחל ערוגות", "area": "דרום"},
+    {"name": "מכתש רמון", "area": "דרום"},
+    {"name": "עין עבדת", "area": "דרום"},
 ]
 
-# 🖼️ תמונה
-def get_image(query):
-    return f"https://source.unsplash.com/600x400/?{query},israel,hiking"
+# 🖼️ תמונה יציבה (fallback)
+def get_image(name):
+    try:
+        return f"https://source.unsplash.com/600x400/?{name},israel,nature"
+    except:
+        return "https://via.placeholder.com/600x400?text=Hiking"
 
-# 🧠 planning
-def plan_hike(preferences):
+# 🧠 AI רק מתאר (לא בוחר!)
+def describe_hike(name):
     prompt = f"""
-אתה סוכן חכם לתכנון טיולים.
+תאר בקצרה את המסלול: {name}
 
-העדפות:
-{preferences}
-
-החלט:
-- האם להשתמש ברשימה
-- או לחפש חופשי
-
-ענה JSON:
+החזר JSON:
 {{
-  "use_known_hikes": true,
-  "search_query": ""
+ "duration": "",
+ "difficulty": "",
+ "description": ""
 }}
 """
     response = client.chat.completions.create(
@@ -84,42 +73,6 @@ def plan_hike(preferences):
     )
 
     return json.loads(response.choices[0].message.content)
-
-# 🧠 agent
-def run_agent(preferences):
-    plan = plan_hike(preferences)
-
-    if plan["use_known_hikes"]:
-        source = [h["name"] for h in KNOWN_HIKES]
-    else:
-        source = plan["search_query"]
-
-    prompt = f"""
-תכנן 2 טיולים בישראל.
-
-מקור:
-{source}
-
-העדפות:
-{preferences}
-
-ענה JSON:
-[
-  {{
-    "name": "",
-    "duration": "",
-    "difficulty": "",
-    "description": ""
-  }}
-]
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    return response.choices[0].message.content
 
 # 🎛️ UI
 region = st.selectbox("📍 אזור", ["צפון", "מרכז", "דרום"])
@@ -131,40 +84,42 @@ duration = st.selectbox(
 
 difficulty = st.selectbox("🥵 רמת קושי", ["קל", "בינוני", "קשה"])
 dog = st.checkbox("🐶 מתאים לכלבים")
-view = st.selectbox("🌄 סוג נוף", ["הרים", "יער", "ים", "מדבר", "מים"])
 
 if st.button("🔍 מצא מסלולים"):
-    prefs = f"""
-    אזור: {region}
-    משך: {duration}
-    קושי: {difficulty}
-    עם כלב: {dog}
-    נוף: {view}
-    """
 
-    result = run_agent(prefs)
+    # 🔥 פילטור אמיתי (לא AI)
+    filtered = [h for h in KNOWN_HIKES if h["area"] == region]
 
-    try:
-        hikes = json.loads(result)
+    if len(filtered) == 0:
+        st.error("לא נמצאו מסלולים 😅")
+    else:
+        selected = filtered[:2]  # פשוט לבינתיים
 
-        for i, hike in enumerate(hikes):
+        for i, hike in enumerate(selected):
+
             st.markdown('<div class="card">', unsafe_allow_html=True)
 
             st.subheader(f"🥾 {hike['name']}")
+
+            # 🖼️ תמונה
             st.image(get_image(hike['name']))
 
-            st.write(f"⏱️ {hike['duration']}")
-            st.write(f"🥵 {hike['difficulty']}")
-            st.write(f"📝 {hike['description']}")
+            # 🧠 תיאור מה-AI
+            try:
+                details = describe_hike(hike['name'])
 
+                st.write(f"⏱️ {details['duration']}")
+                st.write(f"🥵 {details['difficulty']}")
+                st.write(f"📝 {details['description']}")
+            except:
+                st.write("📝 תיאור לא זמין")
+
+            # 🗺️ מפה
             map_url = f"https://www.google.com/maps?q={hike['name']}&output=embed"
             st.components.v1.iframe(map_url, height=300)
 
+            # 🚗 ניווט
             nav_link = f"https://www.google.com/maps/search/?api=1&query={hike['name']}"
             st.markdown(f"[🚗 נווט למסלול]({nav_link})")
 
             st.markdown('</div>', unsafe_allow_html=True)
-
-    except:
-        st.error("בעיה בפענוח 😅")
-        st.write(result)
