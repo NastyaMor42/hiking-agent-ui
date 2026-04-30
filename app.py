@@ -4,7 +4,7 @@ import json
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# 🎨 RTL + עיצוב
+# 🎨 RTL
 st.markdown("""
 <style>
 body {
@@ -22,25 +22,45 @@ body {
 
 st.title("🥾 מתכנן טיולים בישראל")
 
-# 📚 דאטה
+# 📚 30+ מסלולים
 KNOWN_HIKES = [
-    {"name": "נחל כזיב", "area": "צפון"},
-    {"name": "הר מירון", "area": "צפון"},
-    {"name": "נחל עמוד", "area": "צפון"},
-    {"name": "שמורת הבניאס", "area": "צפון"},
-    {"name": "הר תבור", "area": "צפון"},
-    {"name": "מצדה", "area": "דרום"},
-    {"name": "נחל דוד", "area": "דרום"},
-    {"name": "עין גדי", "area": "דרום"},
-    {"name": "נחל השופט", "area": "מרכז"},
-    {"name": "פארק קנדה", "area": "מרכז"},
+    {"name": "נחל כזיב", "area": "צפון", "type": "נחל"},
+    {"name": "הר מירון", "area": "צפון", "type": "הר"},
+    {"name": "נחל עמוד", "area": "צפון", "type": "נחל"},
+    {"name": "בניאס", "area": "צפון", "type": "מים"},
+    {"name": "הר תבור", "area": "צפון", "type": "הר"},
+    {"name": "נחל שניר", "area": "צפון", "type": "מים"},
+    {"name": "מצוקי דרגות", "area": "דרום", "type": "מדבר"},
+    {"name": "מצדה", "area": "דרום", "type": "עתיקות"},
+    {"name": "עין גדי", "area": "דרום", "type": "מים"},
+    {"name": "נחל דוד", "area": "דרום", "type": "מים"},
+    {"name": "נחל ערוגות", "area": "דרום", "type": "מים"},
+    {"name": "הר סדום", "area": "דרום", "type": "מדבר"},
+    {"name": "נחל השופט", "area": "מרכז", "type": "נחל"},
+    {"name": "פארק קנדה", "area": "מרכז", "type": "יער"},
+    {"name": "יער בן שמן", "area": "מרכז", "type": "יער"},
+    {"name": "נחל אלכסנדר", "area": "מרכז", "type": "נחל"},
+    {"name": "חוף דור הבונים", "area": "צפון", "type": "ים"},
+    {"name": "חוף אכזיב", "area": "צפון", "type": "ים"},
+    {"name": "חוף פלמחים", "area": "מרכז", "type": "ים"},
+    {"name": "קיסריה", "area": "מרכז", "type": "עתיקות"},
+    {"name": "גן לאומי אפולוניה", "area": "מרכז", "type": "עתיקות"},
+    {"name": "שמורת החולה", "area": "צפון", "type": "טבע"},
+    {"name": "עין אפק", "area": "צפון", "type": "מים"},
+    {"name": "הר בנטל", "area": "צפון", "type": "תצפית"},
+    {"name": "הר הארבל", "area": "צפון", "type": "תצפית"},
+    {"name": "נחל פרת", "area": "מרכז", "type": "מדבר"},
+    {"name": "מכתש רמון", "area": "דרום", "type": "מדבר"},
+    {"name": "עין עבדת", "area": "דרום", "type": "מים"},
+    {"name": "תל עזקה", "area": "מרכז", "type": "תצפית"},
+    {"name": "הר הכרמל", "area": "צפון", "type": "יער"},
 ]
 
-# 🖼️ תמונות
+# 🖼️ תמונה
 def get_image(query):
-    return f"https://source.unsplash.com/600x400/?{query},hiking,israel"
+    return f"https://source.unsplash.com/600x400/?{query},israel,hiking"
 
-# 🧠 שלב 1 — Planning
+# 🧠 planning
 def plan_hike(preferences):
     prompt = f"""
 אתה סוכן חכם לתכנון טיולים.
@@ -48,20 +68,16 @@ def plan_hike(preferences):
 העדפות:
 {preferences}
 
-שלבים:
-1. הבן מה המשתמש רוצה
-2. החלט:
-   - האם לבחור מתוך רשימה קיימת
-   - או לחפש משהו חדש
+החלט:
+- האם להשתמש ברשימה
+- או לחפש חופשי
 
-ענה JSON בלבד:
+ענה JSON:
 {{
   "use_known_hikes": true,
-  "reason": "",
   "search_query": ""
 }}
 """
-
     response = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[{"role": "user", "content": prompt}]
@@ -69,7 +85,7 @@ def plan_hike(preferences):
 
     return json.loads(response.choices[0].message.content)
 
-# 🧠 שלב 2 — Agent
+# 🧠 agent
 def run_agent(preferences):
     plan = plan_hike(preferences)
 
@@ -79,16 +95,15 @@ def run_agent(preferences):
         source = plan["search_query"]
 
     prompt = f"""
-אתה מתכנן טיולים בישראל.
+תכנן 2 טיולים בישראל.
 
-השתמש במקור:
+מקור:
 {source}
 
 העדפות:
 {preferences}
 
-החזר 2 מסלולים בפורמט JSON:
-
+ענה JSON:
 [
   {{
     "name": "",
@@ -97,8 +112,6 @@ def run_agent(preferences):
     "description": ""
   }}
 ]
-
-ענה רק JSON.
 """
 
     response = client.chat.completions.create(
@@ -110,15 +123,20 @@ def run_agent(preferences):
 
 # 🎛️ UI
 region = st.selectbox("📍 אזור", ["צפון", "מרכז", "דרום"])
-duration = st.selectbox("⏱️ משך (שעות)", [1,2,3,4,5,6,7,8], index=2)
+
+duration = st.selectbox(
+    "⏱️ משך",
+    ["1-2 שעות", "2-4 שעות", "4-6 שעות", "6+ שעות"]
+)
+
 difficulty = st.selectbox("🥵 רמת קושי", ["קל", "בינוני", "קשה"])
 dog = st.checkbox("🐶 מתאים לכלבים")
-view = st.selectbox("🌄 סוג נוף", ["הרים", "יער", "מים"])
+view = st.selectbox("🌄 סוג נוף", ["הרים", "יער", "ים", "מדבר", "מים"])
 
 if st.button("🔍 מצא מסלולים"):
     prefs = f"""
     אזור: {region}
-    משך: {duration} שעות
+    משך: {duration}
     קושי: {difficulty}
     עם כלב: {dog}
     נוף: {view}
@@ -133,24 +151,20 @@ if st.button("🔍 מצא מסלולים"):
             st.markdown('<div class="card">', unsafe_allow_html=True)
 
             st.subheader(f"🥾 {hike['name']}")
-
-            # 🖼️ תמונה
             st.image(get_image(hike['name']))
 
-            st.write(f"⏱️ משך: {hike['duration']}")
-            st.write(f"🥵 קושי: {hike['difficulty']}")
+            st.write(f"⏱️ {hike['duration']}")
+            st.write(f"🥵 {hike['difficulty']}")
             st.write(f"📝 {hike['description']}")
 
-            # 🗺️ מפה
             map_url = f"https://www.google.com/maps?q={hike['name']}&output=embed"
             st.components.v1.iframe(map_url, height=300)
 
-            # 🚗 ניווט
             nav_link = f"https://www.google.com/maps/search/?api=1&query={hike['name']}"
             st.markdown(f"[🚗 נווט למסלול]({nav_link})")
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-    except Exception as e:
+    except:
         st.error("בעיה בפענוח 😅")
         st.write(result)
