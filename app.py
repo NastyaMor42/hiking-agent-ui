@@ -22,38 +22,72 @@ body {
 
 st.title("🥾 מתכנן טיולים בישראל")
 
-# 📚 דאטה אמיתי (אפשר להרחיב בעתיד)
+# 📚 דאטה
 KNOWN_HIKES = [
-    {"name": "נחל כזיב", "area": "צפון", "query": "נחל כזיב"},
-    {"name": "הר מירון", "area": "צפון", "query": "הר מירון"},
-    {"name": "נחל עמוד", "area": "צפון", "query": "נחל עמוד"},
-    {"name": "מצדה", "area": "דרום", "query": "מצדה"},
-    {"name": "נחל דוד", "area": "דרום", "query": "נחל דוד"},
-    {"name": "עין גדי", "area": "דרום", "query": "עין גדי"},
-    {"name": "שמורת הבניאס", "area": "צפון", "query": "בניאס"},
-    {"name": "הר תבור", "area": "צפון", "query": "הר תבור"},
-    {"name": "נחל השופט", "area": "מרכז", "query": "נחל השופט"},
-    {"name": "פארק קנדה", "area": "מרכז", "query": "פארק קנדה"},
+    {"name": "נחל כזיב", "area": "צפון"},
+    {"name": "הר מירון", "area": "צפון"},
+    {"name": "נחל עמוד", "area": "צפון"},
+    {"name": "שמורת הבניאס", "area": "צפון"},
+    {"name": "הר תבור", "area": "צפון"},
+    {"name": "מצדה", "area": "דרום"},
+    {"name": "נחל דוד", "area": "דרום"},
+    {"name": "עין גדי", "area": "דרום"},
+    {"name": "נחל השופט", "area": "מרכז"},
+    {"name": "פארק קנדה", "area": "מרכז"},
 ]
 
 # 🖼️ תמונות
 def get_image(query):
     return f"https://source.unsplash.com/600x400/?{query},hiking,israel"
 
-# 🧠 Agent
-def run_agent(preferences):
+# 🧠 שלב 1 — Planning
+def plan_hike(preferences):
     prompt = f"""
-אתה מתכנן טיולים בישראל.
-
-בחר רק מתוך הרשימה:
-{[h['name'] for h in KNOWN_HIKES]}
-
-אל תמציא מסלולים.
+אתה סוכן חכם לתכנון טיולים.
 
 העדפות:
 {preferences}
 
-החזר 2 מסלולים בפורמט JSON בלבד:
+שלבים:
+1. הבן מה המשתמש רוצה
+2. החלט:
+   - האם לבחור מתוך רשימה קיימת
+   - או לחפש משהו חדש
+
+ענה JSON בלבד:
+{{
+  "use_known_hikes": true,
+  "reason": "",
+  "search_query": ""
+}}
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    return json.loads(response.choices[0].message.content)
+
+# 🧠 שלב 2 — Agent
+def run_agent(preferences):
+    plan = plan_hike(preferences)
+
+    if plan["use_known_hikes"]:
+        source = [h["name"] for h in KNOWN_HIKES]
+    else:
+        source = plan["search_query"]
+
+    prompt = f"""
+אתה מתכנן טיולים בישראל.
+
+השתמש במקור:
+{source}
+
+העדפות:
+{preferences}
+
+החזר 2 מסלולים בפורמט JSON:
 
 [
   {{
@@ -73,7 +107,6 @@ def run_agent(preferences):
     )
 
     return response.choices[0].message.content
-
 
 # 🎛️ UI
 region = st.selectbox("📍 אזור", ["צפון", "מרכז", "דרום"])
@@ -96,7 +129,7 @@ if st.button("🔍 מצא מסלולים"):
     try:
         hikes = json.loads(result)
 
-        for hike in hikes:
+        for i, hike in enumerate(hikes):
             st.markdown('<div class="card">', unsafe_allow_html=True)
 
             st.subheader(f"🥾 {hike['name']}")
@@ -108,76 +141,16 @@ if st.button("🔍 מצא מסלולים"):
             st.write(f"🥵 קושי: {hike['difficulty']}")
             st.write(f"📝 {hike['description']}")
 
-            # 🗺️ מפה (embed!)
-            map_query = hike['name']
-            map_url = f"https://www.google.com/maps?q={map_query}&output=embed"
-
-            st.markdown("### 🗺️ מיקום:")
+            # 🗺️ מפה
+            map_url = f"https://www.google.com/maps?q={hike['name']}&output=embed"
             st.components.v1.iframe(map_url, height=300)
 
             # 🚗 ניווט
-            nav_link = f"https://www.google.com/maps/search/?api=1&query={map_query}"
+            nav_link = f"https://www.google.com/maps/search/?api=1&query={hike['name']}"
             st.markdown(f"[🚗 נווט למסלול]({nav_link})")
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-    except:
+    except Exception as e:
         st.error("בעיה בפענוח 😅")
         st.write(result)
-
-def plan_hike(preferences):
-    prompt = f"""
-אתה סוכן חכם לתכנון טיולים.
-
-העדפות:
-{preferences}
-
-שלבים:
-1. הבן מה המשתמש רוצה
-2. החלט:
-   - האם לבחור מתוך רשימה קיימת
-   - או לחפש משהו חדש
-
-ענה JSON:
-{{
-  "use_known_hikes": true,
-  "reason": "",
-  "search_query": ""
-}}
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    return json.loads(response.choices[0].message.content)
-
-def run_agent(preferences):
-    plan = plan_hike(preferences)
-
-    if plan["use_known_hikes"]:
-        source = [h["name"] for h in KNOWN_HIKES]
-    else:
-        source = plan["search_query"]
-
-    prompt = f"""
-תכנן 2 טיולים לפי:
-
-{preferences}
-
-השתמש במקור:
-{source}
-
-ענה JSON כמו קודם
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    return response.choices[0].message.content
-
-if st.button("🔍 מצא מסלולים"):
-    result = run_agent(prefs)
