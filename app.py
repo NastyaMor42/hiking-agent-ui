@@ -110,7 +110,7 @@ def run_agent(preferences):
 
 # 🎛️ UI
 region = st.selectbox("📍 אזור", ["צפון", "מרכז", "דרום"])
-duration = st.slider("⏱️ משך (שעות)", 1, 8, 3)
+duration = st.selectbox("⏱️ משך (שעות)", [1,2,3,4,5,6,7,8], index=2)
 difficulty = st.selectbox("🥵 רמת קושי", ["קל", "בינוני", "קשה"])
 dog = st.checkbox("🐶 מתאים לכלבים")
 view = st.selectbox("🌄 סוג נוף", ["הרים", "יער", "מים"])
